@@ -107,7 +107,8 @@ public class MapHandler : MonoBehaviour
 
     public void MakeCaverns()
     {
-        // By initilizing column in the outter loop, its only created ONCE
+        //WHY
+        // By initilizing column in the outter loop, its only created ONCE  
         for (int k = 0; k < cavernIterations; k++)
         {
             for (int column = 0, row = 0; row <= MapHeight - 1; row++)
@@ -139,6 +140,7 @@ public class MapHandler : MonoBehaviour
         }
         else
         {
+            //limit for surrounding blocks. If they are walls and im not
             if (numWalls >= floorLimit)
             {
                 return 1;
