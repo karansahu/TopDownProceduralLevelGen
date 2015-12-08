@@ -4,6 +4,7 @@ using System.Collections;
 public class CellularAutomata : MonoBehaviour
 {
     System.Random rand = new System.Random();
+    private MeshGenerator meshGen;
 
     //private int[,] map;
     private Texture2D texRandomFill;
@@ -14,6 +15,7 @@ public class CellularAutomata : MonoBehaviour
     void Start ()
     {        
         quad = GameObject.Find("Quad");
+        meshGen = GetComponent<MeshGenerator>();
     }
 	
 	void Update ()
@@ -25,9 +27,11 @@ public class CellularAutomata : MonoBehaviour
             texRandomFill.wrapMode = TextureWrapMode.Clamp;
             //calculate again
             int[,] randomMap = GenerateRandomMap();
-            //GenerateTexture(randomMap);
+            GenerateTexture(randomMap);
             int [,] smoothMap = GenerateSmoothMap(randomMap);
-            GenerateTexture(smoothMap);
+            //GenerateTexture(smoothMap);
+                        
+            meshGen.GenerateMesh(smoothMap, 1);
         }
 	}
 
@@ -40,11 +44,17 @@ public class CellularAutomata : MonoBehaviour
             for (int j = 0; j < mapHeight; j++)
             {
                 //check for border and create a wall (1)
-                if (i == 0 || j == 0 || i == mapHeight - 1 || j == mapWidth - 1)
+                if (i == 0)
+                    map[i, j] = 1;
+                else if(j == 0)
+                    map[i, j] = 1;
+                else if(i == mapWidth - 1)
+                    map[i, j] = 1;
+                else if(j == mapHeight - 1)
                     map[i, j] = 1;
                 //check if middle and create a wall (1) and create a floor or wall depending on a percentage
                 else
-                    map[i, j] = (j == mapHeight/2) ? 0 : (floorPercent >= rand.Next(1, 100)) ? 1 : 0;                
+                    map[i, j] = (j == mapHeight / 2) ? 0 : (floorPercent >= rand.Next(1, 100)) ? 1 : 0;
             }
         }
         return map;
