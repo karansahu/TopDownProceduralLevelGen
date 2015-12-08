@@ -12,10 +12,7 @@ public class CellularAutomata : MonoBehaviour
     public int mapWidth, mapHeight, iterationNumCA, floorPercent, wallThreshold, floorThreshold;
 
     void Start ()
-    {
-        texRandomFill = new Texture2D(mapWidth, mapHeight, TextureFormat.RGB24, false);
-        texRandomFill.name = "TextureRandomFill";
-        texRandomFill.wrapMode = TextureWrapMode.Clamp;
+    {        
         quad = GameObject.Find("Quad");
     }
 	
@@ -23,6 +20,9 @@ public class CellularAutomata : MonoBehaviour
     {
 	    if(Input.GetKeyDown(KeyCode.Space))
         {
+            texRandomFill = new Texture2D(mapWidth, mapHeight, TextureFormat.RGB24, false);
+            texRandomFill.name = "TextureRandomFill";
+            texRandomFill.wrapMode = TextureWrapMode.Clamp;
             //calculate again
             int[,] randomMap = GenerateRandomMap();
             //GenerateTexture(randomMap);
@@ -52,35 +52,38 @@ public class CellularAutomata : MonoBehaviour
 
     int[,] GenerateSmoothMap(int [,] map)
     {
-        int[,] smoothMap = map;
-
-        for (int i = 0; i < mapWidth - 1; i++)
+        for (int iteration = 0; iteration < iterationNumCA; iteration++)
         {
-            for (int j = 0; j < mapHeight - 1; j++)
+            for (int i = 0; i < mapWidth; i++)
             {
-                //check number of walls around me. 
-                int wallCount = NumberOfAdjacentWalls(i, j, smoothMap);
-                //if I am wall        
-                if (smoothMap[i, j] == 1)
+                for (int j = 0; j < mapHeight; j++)
                 {
-                    //If greater than wallThreshold, I am wall
-                    if (wallCount >= wallThreshold)
+                    //check number of walls around me. 
+                    int wallCount = NumberOfAdjacentWalls(i, j, map);
+                    //if I am wall        
+                    if (map[i, j] == 1)
                     {
-                        smoothMap[i, j] = 1;
+                        //If greater than wallThreshold, I am wall
+                        if (wallCount >= wallThreshold)
+                        {
+                            map[i, j] = 1;
+                        }
+                        else
+                            map[i, j] = 0;
                     }
-                    smoothMap[i, j] = 0;
+                    //If not wall, check against floorThreshold. If greater than floorthreshold, I am wall
+                    else if (wallCount >= floorThreshold)
+                    {
+                        map[i, j] = 1;
+                    }
+                    //else I am floor
+                    else
+                        map[i,j] = 0;
                 }
-                //If not wall, check against floorThreshold. If greater than floorthreshold, I am wall
-                else if (wallCount > floorThreshold)
-                {
-                    smoothMap[i, j] = 1;
-                }
-                //else I am floor
-                smoothMap[i,j] = 0;
             }
         }
 
-        return smoothMap;
+        return map;
     }
 
     int NumberOfAdjacentWalls(int posX, int posY, int[,] map)
@@ -94,10 +97,13 @@ public class CellularAutomata : MonoBehaviour
                 if (!(x == posX && y == posY))
                 {
                     //Out of bounds
-                    if (x < 0 || y < 0 || x >= mapHeight|| y >= mapWidth)
+                    if (x < 0 || y < 0 || x > mapWidth - 1 || y > mapHeight - 1)
+                    {
                         wallCount++;
+                        continue;
+                    }                    
                     //If wall
-                    else if (map[x, y] == 1)
+                    if (map[x, y] == 1)
                         wallCount++;
                 }
             }
