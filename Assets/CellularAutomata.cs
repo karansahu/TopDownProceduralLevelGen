@@ -3,14 +3,124 @@ using System.Collections;
 
 public class CellularAutomata : MonoBehaviour
 {
+    System.Random rand = new System.Random();
 
-	// Use this for initialization
-	void Start () {
+    //private int[,] map;
+    private Texture2D texRandomFill;
+    private GameObject quad;
+
+    public int mapWidth, mapHeight, iterationNumCA, floorPercent, wallThreshold, floorThreshold;
+
+    void Start ()
+    {
+        texRandomFill = new Texture2D(mapWidth, mapHeight, TextureFormat.RGB24, false);
+        texRandomFill.name = "TextureRandomFill";
+        texRandomFill.wrapMode = TextureWrapMode.Clamp;
+        quad = GameObject.Find("Quad");
+    }
 	
+	void Update ()
+    {
+	    if(Input.GetKeyDown(KeyCode.Space))
+        {
+            //calculate again
+            int[,] randomMap = GenerateRandomMap();
+            //GenerateTexture(randomMap);
+            int [,] smoothMap = GenerateSmoothMap(randomMap);
+            GenerateTexture(smoothMap);
+        }
 	}
-	
-	// Update is called once per frame
-	void Update () {
-	
-	}
+
+    int [,] GenerateRandomMap()
+    {
+        int [,] map = new int[mapWidth, mapHeight];
+
+        for (int i = 0; i < mapWidth; i++)
+        {
+            for (int j = 0; j < mapHeight; j++)
+            {
+                //check for border and create a wall (1)
+                if (i == 0 || j == 0 || i == mapHeight - 1 || j == mapWidth - 1)
+                    map[i, j] = 1;
+                //check if middle and create a wall (1) and create a floor or wall depending on a percentage
+                else
+                    map[i, j] = (j == mapHeight/2) ? 0 : (floorPercent >= rand.Next(1, 100)) ? 1 : 0;                
+            }
+        }
+        return map;
+    }
+
+    int[,] GenerateSmoothMap(int [,] map)
+    {
+        int[,] smoothMap = map;
+
+        for (int i = 0; i < mapWidth - 1; i++)
+        {
+            for (int j = 0; j < mapHeight - 1; j++)
+            {
+                //check number of walls around me. 
+                int wallCount = NumberOfAdjacentWalls(i, j, smoothMap);
+                //if I am wall        
+                if (smoothMap[i, j] == 1)
+                {
+                    //If greater than wallThreshold, I am wall
+                    if (wallCount >= wallThreshold)
+                    {
+                        smoothMap[i, j] = 1;
+                    }
+                    smoothMap[i, j] = 0;
+                }
+                //If not wall, check against floorThreshold. If greater than floorthreshold, I am wall
+                else if (wallCount > floorThreshold)
+                {
+                    smoothMap[i, j] = 1;
+                }
+                //else I am floor
+                smoothMap[i,j] = 0;
+            }
+        }
+
+        return smoothMap;
+    }
+
+    int NumberOfAdjacentWalls(int posX, int posY, int[,] map)
+    {
+        int wallCount = 0;
+
+        for (int x = posX - 1; x <= posX + 1; x++)
+        {
+            for (int y = posY - 1; y <= posY + 1; y++)
+            {
+                if (!(x == posX && y == posY))
+                {
+                    //Out of bounds
+                    if (x < 0 || y < 0 || x >= mapHeight|| y >= mapWidth)
+                        wallCount++;
+                    //If wall
+                    else if (map[x, y] == 1)
+                        wallCount++;
+                }
+            }
+        }
+        return wallCount;
+    }
+
+    void GenerateTexture(int[,] values)
+    {
+        for (int i = 0; i < mapWidth; i++)
+        {
+            for (int j = 0; j < mapHeight; j++)
+            {
+                //floor - white
+                if (values[i, j] == 0)
+                    texRandomFill.SetPixel(i, j, new Color(1, 1, 1, 1));
+                //wall - black
+                else if (values[i, j] == 1)
+                    texRandomFill.SetPixel(i, j, new Color(0, 0, 0, 0));
+            }
+        }
+        texRandomFill.Apply(false);
+        quad.GetComponent<Renderer>().material.SetTexture("_MainTex", texRandomFill);
+    }
+    
 }
