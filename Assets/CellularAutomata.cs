@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class CellularAutomata : MonoBehaviour
 {
@@ -139,4 +140,26 @@ public class CellularAutomata : MonoBehaviour
         quad.GetComponent<Renderer>().material.SetTexture("_MainTex", texRandomFill);
     }
     
+    void GetAllRegions()
+    {
+
+    }
+    List<Coord> GetSpecifiedRegion()
+    {
+        List<Coord> region = new List<Coord>();
+        int[,] tileMarker = 
+
+        return region;
+    }
+
+    struct Coord
+    {
+        int posX, posY;
+        public Coord(int x, int y)
+        {
+            posX = x;
+            posY = y;
+        }
+    }
+
 }
