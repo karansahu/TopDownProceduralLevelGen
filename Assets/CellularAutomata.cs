@@ -4,19 +4,20 @@ using System.Collections.Generic;
 
 public class CellularAutomata : MonoBehaviour
 {
-    System.Random rand = new System.Random();
+    System.Random rand;
     private MeshGenerator meshGen;
 
-    //private int[,] map;
+    private int[,] map;
     private Texture2D texRandomFill;
     private GameObject quad;
 
-    public int mapWidth, mapHeight, iterationNumCA, floorPercent, wallThreshold, floorThreshold;
+    public int mapWidth, mapHeight, iterationNumCA, floorPercent, wallThreshold, floorThreshold,seed, minWallRegionSize, minFloorRegionSize;
 
     void Start ()
     {        
         quad = GameObject.Find("Quad");
         meshGen = GetComponent<MeshGenerator>();
+        rand = new System.Random(seed);
     }
 	
 	void Update ()
@@ -26,20 +27,24 @@ public class CellularAutomata : MonoBehaviour
             texRandomFill = new Texture2D(mapWidth, mapHeight, TextureFormat.RGB24, false);
             texRandomFill.name = "TextureRandomFill";
             texRandomFill.wrapMode = TextureWrapMode.Clamp;
+            
             //calculate again
             int[,] randomMap = GenerateRandomMap();
-            GenerateTexture(randomMap);
+            //GenerateTexture(randomMap);
             int [,] smoothMap = GenerateSmoothMap(randomMap);
             //GenerateTexture(smoothMap);
-                        
+            map = smoothMap;
+
+            SearchMapForRegions(minWallRegionSize, minFloorRegionSize);
             meshGen.GenerateMesh(smoothMap, 1);
+
         }
 	}
 
     int [,] GenerateRandomMap()
     {
         int [,] map = new int[mapWidth, mapHeight];
-
+        rand = new System.Random(seed);
         for (int i = 0; i < mapWidth; i++)
         {
             for (int j = 0; j < mapHeight; j++)
@@ -108,7 +113,7 @@ public class CellularAutomata : MonoBehaviour
                 if (!(x == posX && y == posY))
                 {
                     //Out of bounds
-                    if (x < 0 || y < 0 || x > mapWidth - 1 || y > mapHeight - 1)
+                    if (!IsInsideMap(x,y))
                     {
                         wallCount++;
                         continue;
@@ -120,6 +125,11 @@ public class CellularAutomata : MonoBehaviour
             }
         }
         return wallCount;
+    }
+
+    bool IsInsideMap(int posX, int posY)
+    {
+        return (posX >= 0 && posY >= 0 && posX < mapWidth && posY < mapHeight);
     }
 
     void GenerateTexture(int[,] values)
@@ -140,21 +150,95 @@ public class CellularAutomata : MonoBehaviour
         quad.GetComponent<Renderer>().material.SetTexture("_MainTex", texRandomFill);
     }
     
-    void GetAllRegions()
+    void SearchMapForRegions(int minWallRegion, int minFloorRegion)
     {
+        List<List<Coord>> wallRegions = GetAllRegions(1);
+        foreach (List<Coord> region in wallRegions)
+        {
+            if(region.Count < minWallRegion)
+            {
+                foreach (Coord c in region)
+                {
+                    map[c.posX, c.posY] = 0;
+                }
+            }
+        }
 
+        List<List<Coord>> floorRegions = GetAllRegions(0);
+        foreach (List<Coord> region in floorRegions)
+        {
+            if (region.Count < minFloorRegion)
+            {
+                foreach (Coord c in region)
+                {
+                    map[c.posX, c.posY] = 1;
+                }
+            }
+        }
     }
-    List<Coord> GetSpecifiedRegion()
+
+    List<List<Coord>> GetAllRegions(int tileType)
+    {
+        List<List<Coord>> allRegions = new List<List<Coord>>();
+        int[,] tileVisited = new int[mapWidth,mapHeight];
+
+        for (int i = 0; i < mapWidth; i++)
+        {
+            for (int j = 0; j < mapHeight; j++)
+            {
+                if(map[i,j] == tileType && tileVisited[i,j] == 0)
+                {
+                    List<Coord> regionToAdd = GetSpecifiedRegion(i, j);
+                    allRegions.Add(regionToAdd);
+
+                    foreach (Coord c in regionToAdd)
+                    {
+                        tileVisited[c.posX, c.posY] = 1;
+                    }
+                }
+            }
+        }
+
+        return allRegions;
+    }
+
+    List<Coord> GetSpecifiedRegion(int tilePosX, int tilePosY)
     {
         List<Coord> region = new List<Coord>();
-        int[,] tileMarker = 
+        int[,] tileVisited = new int[mapWidth, mapHeight];
+        int tileType = map[tilePosX,tilePosY];
+
+        Queue<Coord> tileQueue = new Queue<Coord>();
+        tileQueue.Enqueue(new Coord(tilePosX, tilePosY));
+        tileVisited[tilePosX, tilePosY] = 1;
+
+        while(tileQueue.Count > 0)
+        {
+            Coord tile = tileQueue.Dequeue();
+            region.Add(tile);
+
+            for (int i = tile.posX - 1; i <= tile.posX + 1; i++)
+            {
+                for (int j = tile.posY - 1; j <= tile.posY + 1; j++)
+                {
+                    if(IsInsideMap(i, j) && (i == tile.posX || j == tile.posY))
+                    {
+                        if(tileVisited[i,j] == 0 && map[i,j] == tileType)
+                        {
+                            tileVisited[i, j] = 1;
+                            tileQueue.Enqueue(new Coord(i,j));
+                        }
+                    }
+                }
+            }
+        }
 
         return region;
     }
 
     struct Coord
     {
-        int posX, posY;
+        public int posX, posY;
         public Coord(int x, int y)
         {
             posX = x;
