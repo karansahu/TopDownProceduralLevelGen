@@ -1,18 +1,19 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System;
 
 public class CellularAutomata : MonoBehaviour
 {
     System.Random rand;
     private MeshGenerator meshGen;
     private int[,] map;
-    private Texture2D texRandomFill;
 
     public int mapWidth, mapHeight, iterationNumCA, floorPercent, wallThreshold, floorThreshold, seed, minWallRegionSize, minFloorRegionSize;
 
     void Start()
     {
+        map = new int[mapWidth, mapHeight];
         meshGen = GetComponent<MeshGenerator>();
     }
 
@@ -20,24 +21,17 @@ public class CellularAutomata : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            //texRandomFill = new Texture2D(mapWidth, mapHeight, TextureFormat.RGB24, false);
-            //texRandomFill.name = "TextureRandomFill";
-            //texRandomFill.wrapMode = TextureWrapMode.Clamp;
             //calculate again
-            int[,] randomMap = GenerateRandomMap();
-            //GenerateTexture(randomMap);
-            int[,] smoothMap = GenerateSmoothMap(randomMap);
-            //GenerateTexture(smoothMap);
-            map = smoothMap;
+            GenerateRandomMap();
+            GenerateSmoothMap();
             ScanMapForRegions();
-            meshGen.GenerateMesh(smoothMap, 1);
+            meshGen.GenerateMesh(map, 1);
         }
     }
-
-    int[,] GenerateRandomMap()
+    
+    void GenerateRandomMap()
     {
         rand = new System.Random(seed.GetHashCode());
-        int[,] map = new int[mapWidth, mapHeight];
 
         for (int i = 0; i < mapWidth; i++)
         {
@@ -57,10 +51,9 @@ public class CellularAutomata : MonoBehaviour
                     map[i, j] = (j == mapHeight / 2) ? 0 : (floorPercent >= rand.Next(1, 100)) ? 1 : 0;
             }
         }
-        return map;
     }
-
-    int[,] GenerateSmoothMap(int[,] map)
+        
+    void GenerateSmoothMap()
     {
         for (int iteration = 0; iteration < iterationNumCA; iteration++)
         {
@@ -69,7 +62,7 @@ public class CellularAutomata : MonoBehaviour
                 for (int j = 0; j < mapHeight; j++)
                 {
                     //check number of walls around me. 
-                    int wallCount = NumberOfAdjacentWalls(i, j, map);
+                    int wallCount = NumberOfAdjacentWalls(i, j);
                     //if I am wall        
                     if (map[i, j] == 1)
                     {
@@ -92,11 +85,9 @@ public class CellularAutomata : MonoBehaviour
                 }
             }
         }
-
-        return map;
     }
 
-    int NumberOfAdjacentWalls(int posX, int posY, int[,] map)
+    int NumberOfAdjacentWalls(int posX, int posY)
     {
         int wallCount = 0;
 
@@ -120,24 +111,7 @@ public class CellularAutomata : MonoBehaviour
         }
         return wallCount;
     }
-
-    void GenerateTexture(int[,] values)
-    {
-        for (int i = 0; i < mapWidth; i++)
-        {
-            for (int j = 0; j < mapHeight; j++)
-            {
-                //floor - white
-                if (values[i, j] == 0)
-                    texRandomFill.SetPixel(i, j, new Color(1, 1, 1, 1));
-                //wall - black
-                else if (values[i, j] == 1)
-                    texRandomFill.SetPixel(i, j, new Color(0, 0, 0, 0));
-            }
-        }
-        texRandomFill.Apply(false);
-    }
-    public List<Room> tempRoom = new List<Room>();
+    
     void ScanMapForRegions()
     {
         List<List<Coord>> wallRegions = GetAllRegions(1);
@@ -166,32 +140,56 @@ public class CellularAutomata : MonoBehaviour
             else
                 roomsLeftAfterRegionCrop.Add(new Room(region,map));
         }
-        tempRoom = roomsLeftAfterRegionCrop;
+        roomsLeftAfterRegionCrop.Sort();
+        roomsLeftAfterRegionCrop[0].mainRoom = true;
+        roomsLeftAfterRegionCrop[0].isConnectedToMainRoom = true;
+
         FindConnectionsBetweenRooms(roomsLeftAfterRegionCrop);
     }
-       
-    void FindConnectionsBetweenRooms(List<Room> roomsToConnect)
+
+    void FindConnectionsBetweenRooms(List<Room> roomsToConnect, bool forceMainRoomConnection = false)
     {        
         int shortestDistance = 0;
         bool connectionFound = false;
+
         Room roomA_ConnectFrom = new Room();
         Room roomB_ConnectTo = new Room();
+
         Coord tileA_ConnectFrom = new Coord();
         Coord tileB_ConnectTo = new Coord();
-    
-        foreach (Room roomA in roomsToConnect)
+
+        List<Room> roomListA = new List<Room>();
+        List<Room> roomListB = new List<Room>();
+
+        if(forceMainRoomConnection)
         {
-            connectionFound = false;
-            foreach (Room roomB in roomsToConnect)
+            //if rooms are connected to Main Room, add to ListB
+            foreach (Room r in roomsToConnect)
             {
-                if (roomA == roomB)
-                    continue;
-    
-                if (roomA.IsConnectedTo(roomB))
-                {
-                    connectionFound = false;
+                if (r.isConnectedToMainRoom)
+                    roomListB.Add(r);
+                //else add to ListA
+                else
+                    roomListA.Add(r);
+            }
+        }
+        else
+            roomListA = roomListB = roomsToConnect;
+
+        foreach (Room roomA in roomListA)
+        {
+            if(!forceMainRoomConnection)
+            {
+                connectionFound = false;
+                //This room has more than one connection, break
+                if (roomA.connectedRooms.Count > 0)
                     break;
-                }
+            }
+            foreach (Room roomB in roomListB)
+            {
+                //If the rooms are the same or if they are already connected, skip to the next room.
+                if (roomA == roomB || roomA.IsConnectedTo(roomB))
+                    continue;
     
                 for (int i = 0; i < roomA.edgeTiles.Count; i++)
                 {
@@ -212,28 +210,24 @@ public class CellularAutomata : MonoBehaviour
                             tileB_ConnectTo = tileRoomB;
                         }
                     }
-                }
-                if (connectionFound)
-                    CreatePassage(roomA_ConnectFrom,roomB_ConnectTo,tileA_ConnectFrom,tileB_ConnectTo);
+                }                
             }
+            if (connectionFound && !forceMainRoomConnection)
+                CreatePassage(roomA_ConnectFrom, roomB_ConnectTo, tileA_ConnectFrom, tileB_ConnectTo);
         }
-    }
-    /*
-    void OnDrawGizmos()
-    {
-        if (tempRoom != null)
+        if(forceMainRoomConnection && connectionFound)
         {
-            foreach (Room roomA in tempRoom)
-            {
-                for (int i = 0; i < roomA.edgeTiles.Count; i++)
-                {
-                    Gizmos.color = Color.green;
-                    Gizmos.DrawCube(CoordToWorld(roomA.edgeTiles[i]), 0.8f * Vector3.one);
-                }
-            }
+            //Calling the create passage outside both loops to ensure the shortest connection to the main room via rooms
+            CreatePassage(roomA_ConnectFrom, roomB_ConnectTo, tileA_ConnectFrom, tileB_ConnectTo);
+            //Calling the method again to check for any more connections
+            FindConnectionsBetweenRooms(roomsToConnect, true);
         }
-    }
-   */
+
+        if (!forceMainRoomConnection)
+            FindConnectionsBetweenRooms(roomsToConnect, true);
+
+    }    
+    
     void CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
     {
         Room.ConnectRooms(roomA, roomB);
@@ -242,7 +236,7 @@ public class CellularAutomata : MonoBehaviour
     
     Vector3 CoordToWorld(Coord A)
     {
-        return (meshGen.MeshContainer.transform.position + (new Vector3(-mapWidth/2 + 0.5f + A.posX, 5, -mapHeight/2 + 0.5f + A.posY)));
+        return (meshGen.MeshContainer.transform.position + (new Vector3(-mapWidth/2 + 0.5f + A.posX, 1, -mapHeight/2 + 0.5f + A.posY)));
     }
     
     List<List<Coord>> GetAllRegions(int tileType)
@@ -318,17 +312,21 @@ public class CellularAutomata : MonoBehaviour
         }
     }
 
-    public class Room
+    class Room : IComparable<Room>
     {
         public List<Coord> tiles;
         public List<Coord> edgeTiles;
         public List<Room> connectedRooms;
+        public int roomSize;
 
+        public bool mainRoom;
+        public bool isConnectedToMainRoom;
         public Room() { }
 
         public Room(List<Coord> _tiles, int[,] map)
         {
             tiles = _tiles;
+            roomSize = tiles.Count;
             edgeTiles = new List<Coord>();
             connectedRooms = new List<Room>();
 
@@ -349,6 +347,11 @@ public class CellularAutomata : MonoBehaviour
 
         public static void ConnectRooms(Room firstRoom, Room secondRoom)
         {
+            if (firstRoom.isConnectedToMainRoom)
+                secondRoom.ConnectToMainRoom();
+            else if (secondRoom.isConnectedToMainRoom)
+                firstRoom.ConnectToMainRoom();
+
             firstRoom.connectedRooms.Add(secondRoom);
             secondRoom.connectedRooms.Add(firstRoom);
         }
@@ -356,6 +359,23 @@ public class CellularAutomata : MonoBehaviour
         public bool IsConnectedTo(Room room)
         {
             return (connectedRooms.Contains(room));
+        }
+
+        public int CompareTo(Room room)
+        {
+            return (room.roomSize.CompareTo(roomSize));
+        }
+
+        public void ConnectToMainRoom()
+        {
+            if(!isConnectedToMainRoom)
+            {
+                isConnectedToMainRoom = true;
+                foreach (Room connectedRoom in connectedRooms)
+                {
+                    connectedRoom.ConnectToMainRoom();
+                }
+            }
         }
     }
 }
