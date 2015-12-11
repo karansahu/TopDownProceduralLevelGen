@@ -36,7 +36,7 @@ public class CellularAutomata : MonoBehaviour
 
     int[,] GenerateRandomMap()
     {
-        rand = new System.Random(seed);
+        rand = new System.Random(seed.GetHashCode());
         int[,] map = new int[mapWidth, mapHeight];
 
         for (int i = 0; i < mapWidth; i++)
@@ -218,7 +218,7 @@ public class CellularAutomata : MonoBehaviour
             }
         }
     }
-    
+    /*
     void OnDrawGizmos()
     {
         if (tempRoom != null)
@@ -233,7 +233,7 @@ public class CellularAutomata : MonoBehaviour
             }
         }
     }
-   
+   */
     void CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
     {
         Room.ConnectRooms(roomA, roomB);
@@ -336,9 +336,9 @@ public class CellularAutomata : MonoBehaviour
             {
                 for (int x = c.posX - 1; x <= c.posX + 1; x++)
                 {
-                    for (int y = c.posY- 1; y <= c.posY + 1; y++)
+                    for (int y = c.posY - 1; y <= c.posY + 1; y++)
                     {
-                        if(map[x,y] == 1 && (x == c.posX || y == c.posY))
+                        if (map[x, y] == 1 && (x == c.posX || y == c.posY))
                         {
                             edgeTiles.Add(c);
                         }
