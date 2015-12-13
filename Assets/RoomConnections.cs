@@ -315,7 +315,7 @@ public class RoomConnections : MonoBehaviour
     public static void ConnectSections(GameObject firstSection, GameObject secondConnection)
     {
         firstSection.GetComponent<RoomConnections>().connectedSections.Add(secondConnection);
-        secondConnection.GetComponent<RoomConnections>().connectedSections.Add(firstSection);
+        //secondConnection.GetComponent<RoomConnections>().connectedSections.Add(firstSection);
     }
 
     public bool SectionIsConnectedTo(GameObject section)
@@ -327,7 +327,7 @@ public class RoomConnections : MonoBehaviour
     {
         ConnectSections(sectionA, sectionB);
         Vector3 start = new Vector3(tileA.posX,0,tileA.posY) + offset;
-        Vector3 end = new Vector3(tileB.posX + sectionB.GetComponent<RoomConnections>().offset.x, 0, tileB.posX + sectionB.GetComponent<RoomConnections>().offset.z);
+        Vector3 end = new Vector3(tileB.posX + sectionB.GetComponent<RoomConnections>().offset.x, 0, tileB.posY + sectionB.GetComponent<RoomConnections>().offset.z);
         Debug.DrawLine(start, end, Color.blue, 100);
         Debug.Log("Start" + start + "\n end" + end);
     }
@@ -335,10 +335,6 @@ public class RoomConnections : MonoBehaviour
     void FindConnectionsBetweenSections(List<Room> myRoomList)
     {
         int shortestDistance = 0;
-        bool connectionFound = false;
-
-        //Room roomA_ConnectFrom = new Room();
-        //Room roomB_ConnectTo = new Room();
 
         Coord tileA_ConnectFrom = new Coord();
         Coord tileB_ConnectTo = new Coord();
@@ -347,11 +343,10 @@ public class RoomConnections : MonoBehaviour
 
         foreach (GameObject connectionGameObj in sectionConnections)
         {
-            allSectionsRooms.Add(connectionGameObj.GetComponent<RoomConnections>().roomRegions);
             if (SectionIsConnectedTo(connectionGameObj))
-            {
                 break;
-            }
+            
+            allSectionsRooms.Add(connectionGameObj.GetComponent<RoomConnections>().roomRegions);
             foreach (List<Room> sectionRoomList in allSectionsRooms)
             {
                 foreach (Room roomA in myRoomList)
@@ -372,10 +367,8 @@ public class RoomConnections : MonoBehaviour
                                 if (distance < shortestDistance || !connectedToSection)
                                 {
                                     shortestDistance = distance;
-                                    Debug.Log(shortestDistance);
+                                    //Debug.Log(shortestDistance);
                                     connectedToSection = true;
-                                    //roomA_ConnectFrom = roomA;
-                                    //roomB_ConnectTo = roomB;
                                     tileA_ConnectFrom = tileRoomA;
                                     tileB_ConnectTo = tileRoomB;
                                 }
@@ -383,9 +376,11 @@ public class RoomConnections : MonoBehaviour
                         }
                     }
                 }
-                if (connectedToSection)
-                    CreateSectionConnection(this.gameObject, connectionGameObj, tileA_ConnectFrom, tileB_ConnectTo);
             }
+            allSectionsRooms.Clear();
+            if (!connectedSections.Contains(connectionGameObj))
+                CreateSectionConnection(this.gameObject, connectionGameObj, tileA_ConnectFrom, tileB_ConnectTo);
+            connectedToSection = false;
         }        
     }
 
