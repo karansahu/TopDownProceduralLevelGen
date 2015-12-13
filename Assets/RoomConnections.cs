@@ -23,16 +23,8 @@ public class RoomConnections : MonoBehaviour
 
     public void Update()
     {
-
         if (Input.GetKeyDown(KeyCode.F))
-        {
             FindConnectionsBetweenSections(roomRegions);
-        }
-        if(Input.GetKeyDown(KeyCode.M))
-        {
-            int distance = (int)(Mathf.Pow((62.5f - 137.5f), 2) + Mathf.Pow((59.5f - 58.4f), 2));
-            Debug.Log("aaaa" + distance);
-        }
     }
 
     public void InitilizeAndScan(int width, int height, int[,] smoothMap)
@@ -315,7 +307,6 @@ public class RoomConnections : MonoBehaviour
     public static void ConnectSections(GameObject firstSection, GameObject secondConnection)
     {
         firstSection.GetComponent<RoomConnections>().connectedSections.Add(secondConnection);
-        //secondConnection.GetComponent<RoomConnections>().connectedSections.Add(firstSection);
     }
 
     public bool SectionIsConnectedTo(GameObject section)
@@ -329,7 +320,6 @@ public class RoomConnections : MonoBehaviour
         Vector3 start = new Vector3(tileA.posX,0,tileA.posY) + offset;
         Vector3 end = new Vector3(tileB.posX + sectionB.GetComponent<RoomConnections>().offset.x, 0, tileB.posY + sectionB.GetComponent<RoomConnections>().offset.z);
         Debug.DrawLine(start, end, Color.blue, 100);
-        Debug.Log("Start" + start + "\n end" + end);
     }
 
     void FindConnectionsBetweenSections(List<Room> myRoomList)
@@ -367,7 +357,6 @@ public class RoomConnections : MonoBehaviour
                                 if (distance < shortestDistance || !connectedToSection)
                                 {
                                     shortestDistance = distance;
-                                    //Debug.Log(shortestDistance);
                                     connectedToSection = true;
                                     tileA_ConnectFrom = tileRoomA;
                                     tileB_ConnectTo = tileRoomB;
