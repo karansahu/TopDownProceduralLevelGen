@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class HilbertCurve : MonoBehaviour
 {
@@ -7,6 +8,8 @@ public class HilbertCurve : MonoBehaviour
     public int dist;
     public int _level;
     private int x = 0, y = 0;
+    public List<Vector3> curvePoints = new List<Vector3>();
+    public float lineDisplayTime;
 
     public int colorIndex = 0;
     void Start()
@@ -34,13 +37,32 @@ public class HilbertCurve : MonoBehaviour
 
     public void lineRel(int deltaX, int deltaY)
     {
-        Vector3 p1 = new Vector3(x,0,y);
-        Vector3 p2 = new Vector3(x + deltaX,0, y + deltaY);
+        Vector3 p1 = new Vector3(x,0,y) + gameObject.transform.position;
+        Vector3 p2 = new Vector3(x + deltaX,0, y + deltaY) + gameObject.transform.position;
         Debug.Log("p1" + p1 + "p2" + p2);
-        Debug.DrawLine(p1,p2,Color.blue,1000f);
+        Debug.DrawLine(p1,p2,Color.blue, lineDisplayTime);        
         x += deltaX;
         y += deltaY;
+        if (!curvePoints.Contains(p1))
+            curvePoints.Add(p1);
+        if (!curvePoints.Contains(p2))
+            curvePoints.Add(p2);
     }
+
+    //void OnDrawGizmos()
+    //{
+    //    if(curvePoints != null)
+    //    {
+    //        foreach (Vector3 point in curvePoints)
+    //        {
+    //            GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+    //            cube.name = curvePoints.IndexOf(point).ToString();
+    //            cube.transform.localScale = Vector3.one;
+    //            cube.transform.position = point;
+    //        }
+    //            //Gizmos.DrawCube(point, 0.8f * Vector3.one);
+    //    }
+    //}
 
     public void Paint(int L)
     {

@@ -207,7 +207,7 @@ public class MeshGenerator : MonoBehaviour
             wall = _wall;
         }
     }
-    
+    /*
     void OnDrawGizmos()
     {
         if(squareGrid != null)
@@ -220,25 +220,26 @@ public class MeshGenerator : MonoBehaviour
                 for (int j = 0; j < lengthY; j++)
                 {
                     Gizmos.color = (squareGrid.squares[i, j].topLeft.wall) ? Color.black : Color.white;
-                    Gizmos.DrawCube(squareGrid.squares[i, j].topLeft.position, 0.5f * Vector3.one);
+                    Gizmos.DrawCube(squareGrid.squares[i, j].topLeft.position + transform.position, 0.5f * Vector3.one);
 
                     Gizmos.color = (squareGrid.squares[i, j].topRight.wall) ? Color.black : Color.white;
-                    Gizmos.DrawCube(squareGrid.squares[i, j].topRight.position, 0.5f * Vector3.one);
+                    Gizmos.DrawCube(squareGrid.squares[i, j].topRight.position + transform.position, 0.5f * Vector3.one);
 
                     Gizmos.color = (squareGrid.squares[i, j].bottomLeft.wall) ? Color.black : Color.white;
-                    Gizmos.DrawCube(squareGrid.squares[i, j].bottomLeft.position, 0.5f * Vector3.one);
+                    Gizmos.DrawCube(squareGrid.squares[i, j].bottomLeft.position + transform.position, 0.5f * Vector3.one);
 
                     Gizmos.color = (squareGrid.squares[i, j].bottomRight.wall) ? Color.black : Color.white;
-                    Gizmos.DrawCube(squareGrid.squares[i, j].bottomRight.position, 0.5f * Vector3.one);
+                    Gizmos.DrawCube(squareGrid.squares[i, j].bottomRight.position + transform.position, 0.5f * Vector3.one);
 
                     Gizmos.color = Color.grey;
-                    Gizmos.DrawCube(squareGrid.squares[i, j].centerTop.position, 0.15f * Vector3.one);
-                    Gizmos.DrawCube(squareGrid.squares[i, j].centerBottom.position, 0.15f * Vector3.one);
-                    Gizmos.DrawCube(squareGrid.squares[i, j].centerLeft.position, 0.15f * Vector3.one);
-                    Gizmos.DrawCube(squareGrid.squares[i, j].centerRight.position, 0.15f * Vector3.one);
+                    Gizmos.DrawCube(squareGrid.squares[i, j].centerTop.position + transform.position, 0.15f * Vector3.one);
+                    Gizmos.DrawCube(squareGrid.squares[i, j].centerBottom.position + transform.position, 0.15f * Vector3.one);
+                    Gizmos.DrawCube(squareGrid.squares[i, j].centerLeft.position + transform.position, 0.15f * Vector3.one);
+                    Gizmos.DrawCube(squareGrid.squares[i, j].centerRight.position + transform.position, 0.15f * Vector3.one);
                 }
             }
         }
     }
+    */
     
 }
