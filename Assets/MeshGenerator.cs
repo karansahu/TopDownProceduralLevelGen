@@ -207,7 +207,7 @@ public class MeshGenerator : MonoBehaviour
             wall = _wall;
         }
     }
-    /*
+    
     void OnDrawGizmos()
     {
         if(squareGrid != null)
@@ -240,6 +240,6 @@ public class MeshGenerator : MonoBehaviour
             }
         }
     }
-    */
+    
     
 }

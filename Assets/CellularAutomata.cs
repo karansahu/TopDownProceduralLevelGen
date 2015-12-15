@@ -10,7 +10,7 @@ public class CellularAutomata : MonoBehaviour
     private int[,] map;
     private RoomConnections roomConnection;
 
-    public int mapWidth, mapHeight, iterationNumCA, floorPercent, wallThreshold, floorThreshold, seed;// minWallRegionSize, minFloorRegionSize;
+    public int mapWidth, mapHeight, iterationNumCA, floorPercent, wallThreshold, floorThreshold, seed;
     public bool useRandomSeed = false;
 
     void Start()
@@ -19,15 +19,11 @@ public class CellularAutomata : MonoBehaviour
         roomConnection = GetComponent<RoomConnections>();
     }
 
-    void Update()
+    public void GenerateMap()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            //calculate again
-            GenerateRandomMap();
-            GenerateSmoothMap();
-            roomConnection.InitilizeAndScan(mapWidth,mapHeight,map);            
-        }
+        GenerateRandomMap();
+        GenerateSmoothMap();
+        roomConnection.InitilizeAndScan(mapWidth,mapHeight,map);            
     }
     
     void GenerateRandomMap()

@@ -8,23 +8,58 @@ public class RoomConnections : MonoBehaviour
     private MeshGenerator meshGen;
     private int[,] map;
     private int _mapWidth, _mapHeight;
+    private bool establishConnection = false;
+    private bool resetMap = false;
+
     public int minWallRegionSize, minFloorRegionSize;
     public List<Room> roomRegions = new List<Room>();
     public GameObject[] sectionConnections;
+
     [NonSerialized]
     public Vector3 offset;
+    [NonSerialized]
     public bool connectedToSection = false;
+    [NonSerialized]  
     public List<GameObject> connectedSections = new List<GameObject>();
+    System.Random rand;
+    GameObject[] mesh;
+    RoomConnections[] sectionsToReset;
 
     void Awake()
     {
         meshGen = GetComponent<MeshGenerator>();
+        mesh = GameObject.FindGameObjectsWithTag("mesh");
+        sectionsToReset = GameObject.FindObjectsOfType<RoomConnections>();
     }
 
-    public void Update()
+    void Update()
     {
-        if (Input.GetKeyDown(KeyCode.F))
-            FindConnectionsBetweenSections(roomRegions);
+        if(establishConnection)
+        {
+            foreach (GameObject m in mesh)
+            {
+                if (m.GetComponent<MeshFilter>().mesh == null)
+                    break;
+                else
+                {
+                    FindConnectionsBetweenSections(roomRegions);
+                    establishConnection = false;
+                    resetMap = true;
+                }
+            }
+        }
+
+        if(resetMap)
+        {
+            foreach (RoomConnections rc in sectionsToReset)
+            {
+                if(rc.connectedSections.Count == rc.sectionConnections.Length)
+                {
+                    ResetConnections();
+                    resetMap = false;
+                }
+            }
+        }
     }
 
     public void InitilizeAndScan(int width, int height, int[,] smoothMap)
@@ -35,6 +70,7 @@ public class RoomConnections : MonoBehaviour
         offset = transform.position - new Vector3(_mapWidth / 2 - 0.5f, 0, _mapHeight / 2 - 0.5f);
         ScanMapForRegions();
         meshGen.GenerateMesh(map, 1);
+        establishConnection = true;
     }
 
     public class Room : IComparable<Room>
@@ -207,7 +243,7 @@ public class RoomConnections : MonoBehaviour
         return region;
     }
 
-    void FindConnectionsBetweenRooms(List<Room> roomsToConnect, bool forceMainRoomConnection = false)
+    public void FindConnectionsBetweenRooms(List<Room> roomsToConnect, bool forceMainRoomConnection = false)
     {
         int shortestDistance = 0;
         bool connectionFound = false;
@@ -273,12 +309,12 @@ public class RoomConnections : MonoBehaviour
                 }
             }
             if (connectionFound && !forceMainRoomConnection)
-                CreatePassage(roomA_ConnectFrom, roomB_ConnectTo, tileA_ConnectFrom, tileB_ConnectTo);
+                FindPassage(roomA_ConnectFrom, roomB_ConnectTo, tileA_ConnectFrom, tileB_ConnectTo);
         }
         if (forceMainRoomConnection && connectionFound)
         {
             //Calling the create passage outside both loops to ensure the shortest connection to the main room via rooms
-            CreatePassage(roomA_ConnectFrom, roomB_ConnectTo, tileA_ConnectFrom, tileB_ConnectTo);
+            FindPassage(roomA_ConnectFrom, roomB_ConnectTo, tileA_ConnectFrom, tileB_ConnectTo);
             //Calling the method again to check for any more connections
             FindConnectionsBetweenRooms(roomsToConnect, true);
         }
@@ -287,11 +323,61 @@ public class RoomConnections : MonoBehaviour
             FindConnectionsBetweenRooms(roomsToConnect, true);
 
     }
-
-    void CreatePassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
+    
+    void FindPassage(Room roomA, Room roomB, Coord tileA, Coord tileB)
     {
         Room.ConnectRooms(roomA, roomB);
-        Debug.DrawLine(CoordToWorld(tileA), CoordToWorld(tileB), Color.green, 100);
+        Debug.DrawLine(CoordToWorld(tileA), CoordToWorld(tileB), Color.green, 5);
+
+        bool invertedX = false;
+        bool invertedY = false;
+        if (tileB.posX < tileA.posX)
+            invertedX = true;
+        if (tileB.posY < tileA.posY)
+            invertedY = true;
+
+
+        //Really bad way to convert the walls into floors. Makes a lot of square shapes.
+        if(!invertedX && !invertedY)
+        {
+            for (int i = tileA.posX; i <= tileB.posX; i++)
+            {
+                for (int j = tileA.posY; j <= tileB.posY; j++)
+                {
+                    map[i, j] = 0;
+                }
+            }
+        }
+        else if(!invertedX && invertedY)
+        {
+            for (int i = tileA.posX; i <= tileB.posX; i++)
+            {
+                for (int j = tileA.posY; j >= tileB.posY; j--)
+                {
+                    map[i, j] = 0;
+                }
+            }
+        }
+        else if(invertedX && !invertedY)
+        {
+            for (int i = tileA.posX; i >= tileB.posX; i--)
+            {
+                for (int j = tileA.posY; j <= tileB.posY; j++)
+                {
+                    map[i, j] = 0;
+                }
+            }
+        }
+        else if (invertedX && invertedY)
+        {
+            for (int i = tileA.posX; i >= tileB.posX; i--)
+            {
+                for (int j = tileA.posY; j >= tileB.posY; j--)
+                {
+                    map[i, j] = 0;
+                }
+            }
+        }
     }
 
     bool IsInsideMap(int posX, int posY)
@@ -319,7 +405,36 @@ public class RoomConnections : MonoBehaviour
         ConnectSections(sectionA, sectionB);
         Vector3 start = new Vector3(tileA.posX,0,tileA.posY) + offset;
         Vector3 end = new Vector3(tileB.posX + sectionB.GetComponent<RoomConnections>().offset.x, 0, tileB.posY + sectionB.GetComponent<RoomConnections>().offset.z);
-        Debug.DrawLine(start, end, Color.blue, 100);
+        Debug.DrawLine(start, end, Color.blue, 15);
+        
+        /* An attempt to create paths based on the binary format of a random number. Works in limited situations */
+        //List<Vector3> allPoints = new List<Vector3>();
+        //allPoints.Add(start);
+        //int passageOffset = 12;
+
+        //rand = new System.Random();
+        //int a = rand.Next(1024);
+        //string binary = Convert.ToString(a, 2);
+        //char[] binaryCharArr = binary.ToCharArray();
+
+        //for (int i = 1; i < 8; i++)
+        //{
+        //    //go forward and up
+        //    if (binaryCharArr[i-1] == '1')
+        //        allPoints.Add(new Vector3(start.x + i * passageOffset, start.y, start.z + passageOffset));
+        //    //go forward and down
+        //    else if(binaryCharArr[i - 1] == '0')
+        //        allPoints.Add(new Vector3(start.x + i * passageOffset, start.y, start.z));
+
+        //    Debug.Log("binary char " + binaryCharArr[i-1]);
+        //}
+        //allPoints.Add(new Vector3(start.x + 8 * passageOffset, start.y, start.z));
+        //allPoints.Add(end);
+
+        //for (int i = 0; i < allPoints.Count - 1; i++)
+        //{
+        //    Debug.DrawLine(allPoints[i], allPoints[i+1], Color.blue, 5);
+        //}
     }
 
     void FindConnectionsBetweenSections(List<Room> myRoomList)
@@ -370,19 +485,25 @@ public class RoomConnections : MonoBehaviour
             if (!connectedSections.Contains(connectionGameObj))
                 CreateSectionConnection(this.gameObject, connectionGameObj, tileA_ConnectFrom, tileB_ConnectTo);
             connectedToSection = false;
-        }        
+        }
     }
 
+    void ResetConnections()
+    {
+        roomRegions.Clear();
+        connectedToSection = false;
+        connectedSections.Clear();
+    }
     void OnDrawGizmos()
     {
-        List<List<Room>> sectionConnectionRooms = new List<List<Room>>();        
-        foreach (Room room in roomRegions)
+        List<List<Room>> sectionConnectionRooms = new List<List<Room>>();            
+        if(sectionConnections!=null)
         {
-            for (int i = 0; i < room.edgeTiles.Count; i++)
+            for (int i = 0; i < sectionConnections.Length; i++)
             {
-                Gizmos.DrawCube(new Vector3(room.edgeTiles[i].posX + offset.x, 0, room.edgeTiles[i].posY + offset.z),Vector3.one);
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawLine(transform.position, sectionConnections[i].transform.position);
             }
-
         }
     }
 }
